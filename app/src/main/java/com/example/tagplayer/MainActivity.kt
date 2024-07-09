@@ -61,6 +61,11 @@ import okhttp3.Response
 import okio.IOException
 
 /***
+ * This app reads tag values (QR-Code or NFC) and calls the sonos-http-api (https://github.com/Thyraz/node-sonos-http-api)
+ * with the corresponding track id.
+ * Also the 5 basic control commands are available via buttons.
+ * The room for playback can be selected from a predefined array.
+ *
  * Tracks:
  * - I like to move it: spotify/now/spotify:track:4bAFo6r2ODMDoqM5YHV2gM
  * - Wellerman: spotify/now/spotify:track:54OBgO0Xwu20Jak9TMXbR7
