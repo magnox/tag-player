@@ -1,8 +1,10 @@
 package com.example.tagplayer
 
 import android.app.AlertDialog
+import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.nfc.NdefMessage
 import android.nfc.NfcAdapter
 import android.nfc.Tag
@@ -94,6 +96,8 @@ class MainActivity : ComponentActivity() {
             Toast.makeText(this, "NFC ist auf diesem Gerät nicht verfügbar.", Toast.LENGTH_SHORT).show()
         }
 
+        handleTagData(intent) // if the app is closed, intent data (NFC content) will be delivered here
+
         currentRoom = getSavedRoom() ?: rooms[0]
 
         setContent {
@@ -166,8 +170,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        handleTagData(intent)
+    }
 
-
+    private fun handleTagData(intent: Intent) {
         if (NfcAdapter.ACTION_NDEF_DISCOVERED == intent.action) {
             intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)?.also { rawMessages ->
                 val messages: List<NdefMessage> = rawMessages.map { it as NdefMessage }
@@ -178,15 +184,6 @@ class MainActivity : ComponentActivity() {
                 identifier?.let { sendRequest(it) }
             }
         }
-
-        /*val tag = intent.getParcelableExtra<Tag>(NfcAdapter.EXTRA_TAG)
-        tag?.let {
-            val ndef = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)?.firstOrNull() as? android.nfc.NdefMessage
-            val identifier = ndef?.records?.firstOrNull()?.payload?.let { payload ->
-                String(payload, Charsets.UTF_8).substring(3) // Skip the prefix
-            }
-            identifier?.let { sendRequest(it) }
-        }*/
     }
 
     private fun sendRequest(identifier: String? = null, cmd: Command? = null) {
@@ -219,6 +216,7 @@ fun performHttpRequest(url: String) {
 
     client.newCall(request).enqueue(object : okhttp3.Callback {
         override fun onFailure(call: okhttp3.Call, e: IOException) {
+            Log.d("URL", "Request failed with exception: ${e.localizedMessage}")
             e.printStackTrace()
         }
 
