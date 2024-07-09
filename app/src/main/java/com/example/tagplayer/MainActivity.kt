@@ -96,8 +96,6 @@ class MainActivity : ComponentActivity() {
             Toast.makeText(this, "NFC ist auf diesem Gerät nicht verfügbar.", Toast.LENGTH_SHORT).show()
         }
 
-        handleTagData(intent) // if the app is closed, intent data (NFC content) will be delivered here
-
         currentRoom = getSavedRoom() ?: rooms[0]
 
         setContent {
@@ -115,6 +113,8 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+
+        handleTagData(intent) // if the app is closed, intent data (NFC content) will be delivered here
     }
 
     private fun initiateQrCodeScan() {
