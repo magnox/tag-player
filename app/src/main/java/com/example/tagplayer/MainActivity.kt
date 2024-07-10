@@ -17,6 +17,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
@@ -34,11 +35,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathOperation
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
@@ -87,9 +92,14 @@ class MainActivity : ComponentActivity() {
     private val volumeStep = 3
 
     private var nfcAdapter: NfcAdapter? = null
+    private var nfcDataProcessed: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        savedInstanceState?.let {
+            nfcDataProcessed = it.getBoolean("nfcDataProcessed", false)
+        }
 
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
         if (nfcAdapter == null) {
@@ -114,7 +124,9 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        handleTagData(intent) // if the app is closed, intent data (NFC content) will be delivered here
+        if (!nfcDataProcessed) {
+            handleTagData(intent) // if the app is closed, intent data (NFC content) will be delivered here
+        }
     }
 
     private fun initiateQrCodeScan() {
@@ -173,6 +185,11 @@ class MainActivity : ComponentActivity() {
         handleTagData(intent)
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean("nfcDataProcessed", nfcDataProcessed)
+    }
+
     private fun handleTagData(intent: Intent) {
         if (NfcAdapter.ACTION_NDEF_DISCOVERED == intent.action) {
             intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)?.also { rawMessages ->
@@ -182,6 +199,7 @@ class MainActivity : ComponentActivity() {
                     String(payload, Charsets.UTF_8).substring(3)
                 }
                 identifier?.let { sendRequest(it) }
+                nfcDataProcessed = true
             }
         }
     }
@@ -192,9 +210,15 @@ class MainActivity : ComponentActivity() {
             Command.PLAY_PAUSE -> "playpause"
             Command.PREV -> "previous"
             Command.NEXT -> "next"
+            Command.CLEAR_QUEUE -> "clearqueue"
             Command.VOL_UP -> "volume/+$volumeStep"
             Command.VOL_DOWN -> "volume/-$volumeStep"
             null -> identifier
+        }
+
+        if (action.isNullOrEmpty()) {
+            // clear queue before playing new media
+            sendRequest(cmd = Command.CLEAR_QUEUE)
         }
 
         val host = "192.168.178.77"
@@ -234,7 +258,7 @@ fun performHttpRequest(url: String) {
 }
 
 enum class Command {
-    PLAY_PAUSE, PREV, NEXT, VOL_UP, VOL_DOWN
+    PLAY_PAUSE, PREV, NEXT, VOL_UP, VOL_DOWN, CLEAR_QUEUE
 }
 
 private const val iconSize = 48
