@@ -32,16 +32,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Outline
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.example.tagplayer.ui.theme.BackgroundColor
 import com.example.tagplayer.ui.theme.NextTrackColor
@@ -75,7 +71,7 @@ import okio.IOException
  * - Kinderlieder: spotify/now/spotify:user:spotify:playlist:42fV06Xb7iDSI4RHhXZGTU
  *
  * Audiobooks:
- * - 
+ * -
  *
  * */
 
@@ -287,31 +283,33 @@ fun MainScreen(
                 .padding(16.dp)
         )
 
+        val offset = 105.dp
+
         QuarterCircleButton(
             icon = Icons.Default.Add,
             onClick = onVolumeUp,
-            modifier = Modifier.rotate(45f),
+            modifier = Modifier.offset(0.dp, -offset).rotate(-135f),
             color = VolumeUpColor
         )
 
         QuarterCircleButton(
             icon = Icons.Default.Remove,
             onClick = onVolumeDown,
-            modifier = Modifier.rotate(45f + 180f),
+            modifier = Modifier.offset(0.dp, offset).rotate(45f),
             color = VolumeDownColor
         )
 
         QuarterCircleButton(
             icon = Icons.Default.KeyboardDoubleArrowUp,
             onClick = onPrevTrack,
-            modifier = Modifier.rotate(45f + 90f + 180f),
+            modifier = Modifier.offset(-offset, 0.dp).rotate(135f),
             color = PreviousTrackColor
         )
 
         QuarterCircleButton(
             icon = Icons.Default.KeyboardDoubleArrowUp,
             onClick = onNextTrack,
-            modifier = Modifier.rotate(45f + 90f),
+            modifier = Modifier.offset(offset, 0.dp).rotate(-45f),
             color = NextTrackColor
         )
 
@@ -359,12 +357,57 @@ fun CircleButton(icon: ImageVector, onClick: () -> Unit, modifier: Modifier = Mo
 
 @Composable
 fun QuarterCircleButton(icon: ImageVector, onClick: () -> Unit, modifier: Modifier = Modifier, color: Color) {
+    val fraction = 0.51f
+
     Button(
         onClick = onClick,
+        shape = RectangleShape,
         modifier = modifier
-            .size(300.dp)
-            .border(4.dp, BackgroundColor, shape = DonutQuarterCircleShape())
-            .clip(DonutQuarterCircleShape()),
+            .size(160.dp)
+            .clip(GenericShape { size, _ ->
+                // clip outer corner
+                moveTo(0f, 0f)
+                arcTo(
+                    rect = Rect(
+                        left = -size.width,
+                        right = size.width,
+                        top = -size.height,
+                        bottom = size.height
+                    ),
+                    startAngleDegrees = 0f,
+                    sweepAngleDegrees = 90f,
+                    forceMoveTo = true
+                )
+                lineTo(0f, 0f)
+            })
+            .clip(GenericShape { size, _ ->
+                // clip inner corner
+                moveTo(0f, size.height * fraction)
+                lineTo(0f, size.height)
+                lineTo(size.width, size.height)
+                lineTo(size.width, 0f)
+                lineTo(size.width * fraction, 0f)
+                arcTo(
+                    rect = Rect(
+                        left = -size.width * fraction,
+                        right = size.width * fraction,
+                        top = -size.height * fraction,
+                        bottom = size.height * fraction
+                    ),
+                    startAngleDegrees = 0f,
+                    sweepAngleDegrees = 90f,
+                    forceMoveTo = true
+                )
+            })
+            .clip(GenericShape { size, _ ->
+                // clip intersection padding
+                val padding = 30f
+                moveTo(padding, padding)
+                lineTo(size.width, padding)
+                lineTo(size.width, size.height)
+                lineTo(padding, size.height)
+                lineTo(padding, padding)
+            }),
         colors = ButtonDefaults.buttonColors(containerColor = color)
     ) {
         Icon(
@@ -373,48 +416,8 @@ fun QuarterCircleButton(icon: ImageVector, onClick: () -> Unit, modifier: Modifi
             tint = Color.White,
             modifier = Modifier
                 .size(iconSize.dp)
-                .offset(x = (-75).dp, y = (-75).dp)
-                .rotate(-45f)
+                .offset(x = 5.dp, y = (5).dp)
+                .rotate(135f)
         )
-    }
-}
-
-class DonutQuarterCircleShape : Shape {
-    override fun createOutline(
-        size: Size,
-        layoutDirection: LayoutDirection,
-        density: Density
-    ): Outline {
-        val path = Path().apply {
-            // Define the outer arc
-            arcTo(
-                Rect(
-                    0f,
-                    0f,
-                    size.width,
-                    size.height
-                ),
-                180f,
-                90f,
-                false
-            )
-            // Move to the inner circle
-            lineTo(size.width / 2, size.height / 2)
-            // Define the inner arc (cut-out)
-            val innerRadius = size.width * 0.45f
-            arcTo(
-                Rect(
-                    size.width / 2 - innerRadius / 2,
-                    size.height / 2 - innerRadius / 2,
-                    size.width / 2 + innerRadius / 2,
-                    size.height / 2 + innerRadius / 2
-                ),
-                270f,
-                -90f,
-                false
-            )
-            close()
-        }
-        return Outline.Generic(path)
     }
 }
