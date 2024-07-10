@@ -1,13 +1,10 @@
 package com.example.tagplayer
 
 import android.app.AlertDialog
-import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.nfc.NdefMessage
 import android.nfc.NfcAdapter
-import android.nfc.Tag
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -35,15 +32,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathOperation
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
@@ -171,8 +164,7 @@ class MainActivity : ComponentActivity() {
             dialog.dismiss()
         }
 
-        val dialog = builder.create()
-        dialog.show()
+        builder.create().show()
     }
 
     private fun getSavedRoom() : String? {
@@ -206,6 +198,11 @@ class MainActivity : ComponentActivity() {
 
     private fun sendRequest(identifier: String? = null, cmd: Command? = null) {
 
+        if (cmd == null) {
+            // clear queue before playing new media
+            sendRequest(cmd = Command.CLEAR_QUEUE)
+        }
+
         val action = when (cmd) {
             Command.PLAY_PAUSE -> "playpause"
             Command.PREV -> "previous"
@@ -214,11 +211,6 @@ class MainActivity : ComponentActivity() {
             Command.VOL_UP -> "volume/+$volumeStep"
             Command.VOL_DOWN -> "volume/-$volumeStep"
             null -> identifier
-        }
-
-        if (action.isNullOrEmpty()) {
-            // clear queue before playing new media
-            sendRequest(cmd = Command.CLEAR_QUEUE)
         }
 
         val host = "192.168.178.77"
