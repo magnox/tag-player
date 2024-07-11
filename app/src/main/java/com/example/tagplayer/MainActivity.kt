@@ -60,15 +60,13 @@ import okio.IOException
  * The room for playback can be selected from a predefined array.
  *
  * Tracks:
- * - I like to move it: spotify/now/spotify:track:4bAFo6r2ODMDoqM5YHV2gM
- * - Wellerman: spotify/now/spotify:track:54OBgO0Xwu20Jak9TMXbR7
- * - Old Mac Donald: spotify/now/spotify:track:3wqEV252syLYutFnTW3HUX
+ * - spotify/now/spotify:track:{TRACK_ID}
  *
  * Playlists:
- * - Kinderlieder: spotify/now/spotify:user:spotify:playlist:42fV06Xb7iDSI4RHhXZGTU
+ * - spotify/now/spotify:user:spotify:playlist:{PLAYLIST_ID}
  *
- * Audiobooks:
- * -
+ * Albums:
+ * - spotify/now/spotify:album:{ALBUM_ID}
  *
  * */
 
