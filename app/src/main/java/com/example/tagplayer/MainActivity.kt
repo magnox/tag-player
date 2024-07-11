@@ -101,11 +101,11 @@ class MainActivity : ComponentActivity() {
             TagPlayerTheme {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                     MainScreen(
-                        onPrevTrack = { sendRequest(cmd = Command.PREV) },
-                        onNextTrack = { sendRequest(cmd = Command.NEXT) },
-                        onVolumeDown = { sendRequest(cmd = Command.VOL_DOWN) },
-                        onPlayPause = { sendRequest(cmd = Command.PLAY_PAUSE) },
-                        onVolumeUp = { sendRequest(cmd = Command.VOL_UP) },
+                        onPrevTrack = { sendRequest(Command.PREV) },
+                        onNextTrack = { sendRequest(Command.NEXT) },
+                        onVolumeDown = { sendRequest(Command.VOL_DOWN) },
+                        onPlayPause = { sendRequest(Command.PLAY_PAUSE) },
+                        onVolumeUp = { sendRequest(Command.VOL_UP) },
                         onScanQrCode = { initiateQrCodeScan() },
                         onSelectRoom = { selectRoom(this) }
                     )
@@ -192,13 +192,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun sendRequest(identifier: String? = null, cmd: Command? = null) {
-
-        if (cmd == null) {
-            // clear queue before playing new media
-            sendRequest(cmd = Command.CLEAR_QUEUE)
-        }
-
+    private fun sendRequest(cmd: Command) {
         val action = when (cmd) {
             Command.PLAY_PAUSE -> "playpause"
             Command.PREV -> "previous"
@@ -206,19 +200,25 @@ class MainActivity : ComponentActivity() {
             Command.CLEAR_QUEUE -> "clearqueue"
             Command.VOL_UP -> "volume/+$volumeStep"
             Command.VOL_DOWN -> "volume/-$volumeStep"
-            null -> identifier
         }
 
-        val host = "192.168.178.77"
-        val port = "5005"
-        val baseUrl = "http://$host:$port/$currentRoom/" // + spotify/now/spotify:track:4bAFo6r2ODMDoqM5YHV2gM
+        performHttpRequest(currentRoom, action)
+    }
 
-        performHttpRequest(baseUrl + action)
+    private fun sendRequest(identifier: String) {
+        // clear queue before playing new media
+        sendRequest(Command.CLEAR_QUEUE)
+
+        performHttpRequest(currentRoom, identifier)
     }
 }
 
-fun performHttpRequest(url: String) {
+fun performHttpRequest(currentRoom: String, uri: String) {
     val client = OkHttpClient()
+
+    val host = "192.168.178.77"
+    val port = "5005"
+    val url = "http://$host:$port/$currentRoom/$uri"
 
     val request = Request.Builder()
         .url(url)
