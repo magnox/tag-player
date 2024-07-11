@@ -10,9 +10,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.GenericShape
 import androidx.compose.material.icons.Icons
@@ -32,7 +30,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
@@ -250,6 +247,7 @@ enum class Command {
 }
 
 private const val iconSize = 48
+private val quarterCircleButtonOffset = 105.dp
 
 @Composable
 fun MainScreen(
@@ -265,7 +263,7 @@ fun MainScreen(
         .fillMaxSize()
         .background(BackgroundColor), contentAlignment = Alignment.Center) {
 
-        CircleButton(
+        BigIconButton(
             icon = Icons.Default.QrCodeScanner,
             onClick = onScanQrCode,
             color = QrScanColor,
@@ -274,7 +272,7 @@ fun MainScreen(
                 .padding(16.dp)
         )
 
-        CircleButton(
+        BigIconButton(
             icon = Icons.Default.Home,
             onClick = onSelectRoom,
             color = RoomSelectColor,
@@ -283,33 +281,31 @@ fun MainScreen(
                 .padding(16.dp)
         )
 
-        val offset = 105.dp
-
         QuarterCircleButton(
             icon = Icons.Default.Add,
             onClick = onVolumeUp,
-            modifier = Modifier.offset(0.dp, -offset).rotate(-135f),
+            modifier = Modifier.offset(0.dp, -quarterCircleButtonOffset).rotate(-135f),
             color = VolumeUpColor
         )
 
         QuarterCircleButton(
             icon = Icons.Default.Remove,
             onClick = onVolumeDown,
-            modifier = Modifier.offset(0.dp, offset).rotate(45f),
+            modifier = Modifier.offset(0.dp, quarterCircleButtonOffset).rotate(45f),
             color = VolumeDownColor
         )
 
         QuarterCircleButton(
             icon = Icons.Default.KeyboardDoubleArrowUp,
             onClick = onPrevTrack,
-            modifier = Modifier.offset(-offset, 0.dp).rotate(135f),
+            modifier = Modifier.offset(-quarterCircleButtonOffset, 0.dp).rotate(135f),
             color = PreviousTrackColor
         )
 
         QuarterCircleButton(
             icon = Icons.Default.KeyboardDoubleArrowUp,
             onClick = onNextTrack,
-            modifier = Modifier.offset(offset, 0.dp).rotate(-45f),
+            modifier = Modifier.offset(quarterCircleButtonOffset, 0.dp).rotate(-45f),
             color = NextTrackColor
         )
 
@@ -337,13 +333,11 @@ fun MainScreenPreview() {
 }
 
 @Composable
-fun CircleButton(icon: ImageVector, onClick: () -> Unit, modifier: Modifier = Modifier, color: Color) {
+fun BigIconButton(icon: ImageVector, onClick: () -> Unit, modifier: Modifier = Modifier, color: Color) {
     Button(
         onClick = onClick,
-        border = BorderStroke(2.dp, Color.DarkGray),
+        //border = BorderStroke(2.dp, Color.DarkGray),
         modifier = modifier,
-            //.size(60.dp)
-            //.clip(CircleShape),
         colors = ButtonDefaults.buttonColors(containerColor = color)
     ) {
         Icon(
