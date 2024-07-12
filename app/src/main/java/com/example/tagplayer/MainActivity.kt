@@ -245,7 +245,7 @@ enum class Command {
 }
 
 private const val iconSize = 48
-private val quarterCircleButtonOffset = 105.dp
+private val quarterCircleButtonOffset = 113.dp
 
 @Composable
 fun MainScreen(
@@ -309,7 +309,7 @@ fun MainScreen(
 
         Button(
             onClick = onPlayPause,
-            modifier = Modifier.size(128.dp),
+            modifier = Modifier.size(134.dp),
             colors = ButtonDefaults.buttonColors(containerColor = PlayPauseColor)
         ) {
             Icon(
@@ -349,7 +349,7 @@ fun BigIconButton(icon: ImageVector, onClick: () -> Unit, modifier: Modifier = M
 
 @Composable
 fun QuarterCircleButton(icon: ImageVector, onClick: () -> Unit, modifier: Modifier = Modifier, color: Color) {
-    val fraction = 0.51f
+    val fraction = 0.5f
 
     Button(
         onClick = onClick,
@@ -393,7 +393,7 @@ fun QuarterCircleButton(icon: ImageVector, onClick: () -> Unit, modifier: Modifi
             })
             .clip(GenericShape { size, _ ->
                 // clip intersection padding
-                val padding = 30f
+                val padding = 20f
                 moveTo(padding, padding)
                 lineTo(size.width, padding)
                 lineTo(size.width, size.height)
@@ -408,7 +408,7 @@ fun QuarterCircleButton(icon: ImageVector, onClick: () -> Unit, modifier: Modifi
             tint = Color.White,
             modifier = Modifier
                 .size(iconSize.dp)
-                .offset(x = 5.dp, y = (5).dp)
+                .offset(x = 4.dp, y = 4.dp)
                 .rotate(135f)
         )
     }
