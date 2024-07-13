@@ -3,6 +3,7 @@ package com.example.tagplayer
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.nfc.NdefMessage
 import android.nfc.NfcAdapter
 import android.os.Bundle
@@ -36,6 +37,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat.startActivity
 import com.example.tagplayer.ui.theme.BackgroundColor
 import com.example.tagplayer.ui.theme.NextTrackColor
 import com.example.tagplayer.ui.theme.PlayPauseColor
@@ -53,11 +55,13 @@ import okhttp3.Request
 import okhttp3.Response
 import okio.IOException
 
+
 /***
  * This app reads tag values (QR-Code or NFC) and calls the sonos-http-api (https://github.com/Thyraz/node-sonos-http-api)
  * with the corresponding track id.
  * Also the 5 basic control commands are available via buttons.
  * The room for playback can be selected from a predefined array.
+ * In case the local server is not available, the request is deeplinked to the spotify app.
  *
  * Tracks:
  * - spotify/now/spotify:track:{TRACK_ID}
@@ -197,18 +201,18 @@ class MainActivity : ComponentActivity() {
             Command.VOL_DOWN -> "volume/-$volumeStep"
         }
 
-        performHttpRequest(currentRoom, action)
+        performHttpRequest(currentRoom, action, this)
     }
 
     private fun sendRequest(identifier: String) {
         // clear queue before playing new media
         sendRequest(Command.CLEAR_QUEUE)
 
-        performHttpRequest(currentRoom, identifier)
+        performHttpRequest(currentRoom, identifier, this)
     }
 }
 
-fun performHttpRequest(currentRoom: String, uri: String) {
+fun performHttpRequest(currentRoom: String, uri: String, context: Context) {
     val client = OkHttpClient()
 
     val host = "192.168.178.77"
@@ -225,6 +229,28 @@ fun performHttpRequest(currentRoom: String, uri: String) {
         override fun onFailure(call: okhttp3.Call, e: IOException) {
             Log.d("URL", "Request failed with exception: ${e.localizedMessage}")
             e.printStackTrace()
+
+            if (isSpotifyRequest(uri)) {
+                val pathSegments = call.request().url.encodedPathSegments
+                openInSpotifyApp(pathSegments[pathSegments.size - 1], context)
+            }
+        }
+
+        private fun isSpotifyRequest(uri: String): Boolean {
+            return uri.contains("spotify")
+        }
+
+        private fun openInSpotifyApp(encodedPathSegment: String, context: Context) {
+            Log.d("URL", "path segment: $encodedPathSegment")
+
+            val identifiers = encodedPathSegment.split(':')
+            val spotifyContent = "https://open.spotify.com/intl-de/${identifiers[identifiers.size - 2]}/${identifiers[identifiers.size - 1]}"
+
+            val branchLink = "https://spotify.link/content_linking?~campaign=${context.packageName}&\$deeplink_path=$spotifyContent&\$fallback_url=$spotifyContent"
+            val intent = Intent(Intent.ACTION_VIEW)
+            Log.d("URL", "starting deeplink activity: $branchLink")
+            intent.setData(Uri.parse(branchLink))
+            startActivity(context, intent, null)
         }
 
         override fun onResponse(call: okhttp3.Call, response: Response) {
@@ -282,28 +308,36 @@ fun MainScreen(
         QuarterCircleButton(
             icon = Icons.Default.Add,
             onClick = onVolumeUp,
-            modifier = Modifier.offset(0.dp, -quarterCircleButtonOffset).rotate(-135f),
+            modifier = Modifier
+                .offset(0.dp, -quarterCircleButtonOffset)
+                .rotate(-135f),
             color = VolumeUpColor
         )
 
         QuarterCircleButton(
             icon = Icons.Default.Remove,
             onClick = onVolumeDown,
-            modifier = Modifier.offset(0.dp, quarterCircleButtonOffset).rotate(45f),
+            modifier = Modifier
+                .offset(0.dp, quarterCircleButtonOffset)
+                .rotate(45f),
             color = VolumeDownColor
         )
 
         QuarterCircleButton(
             icon = Icons.Default.KeyboardDoubleArrowUp,
             onClick = onPrevTrack,
-            modifier = Modifier.offset(-quarterCircleButtonOffset, 0.dp).rotate(135f),
+            modifier = Modifier
+                .offset(-quarterCircleButtonOffset, 0.dp)
+                .rotate(135f),
             color = PreviousTrackColor
         )
 
         QuarterCircleButton(
             icon = Icons.Default.KeyboardDoubleArrowUp,
             onClick = onNextTrack,
-            modifier = Modifier.offset(quarterCircleButtonOffset, 0.dp).rotate(-45f),
+            modifier = Modifier
+                .offset(quarterCircleButtonOffset, 0.dp)
+                .rotate(-45f),
             color = NextTrackColor
         )
 
