@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">TagPlayer</string>
+    <string name="qr_scan_canceled">QR-Code Scan abgebrochen</string>
+    <string name="qr_scan_failed">QR-Code Scan fehlgeschlagen (%1$s)</string>
+    <string name="room_select">Raum auswählen</string>
+    <string name="cancel">Abbrechen</string>
+    <string name="nfc_not_available">NFC ist auf diesem Gerät nicht verfügbar.</string>
+    <string name="ok">OK</string>
 </resources>

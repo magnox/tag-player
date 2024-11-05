@@ -3,10 +3,12 @@ package com.example.tagplayer
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
+import android.media.MediaPlayer
 import android.net.Uri
 import android.nfc.NdefMessage
 import android.nfc.NfcAdapter
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -91,7 +93,7 @@ class MainActivity : ComponentActivity() {
 
         nfcAdapter = NfcAdapter.getDefaultAdapter(this)
         if (nfcAdapter == null) {
-            Toast.makeText(this, "NFC ist auf diesem Gerät nicht verfügbar.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.nfc_not_available), Toast.LENGTH_SHORT).show()
         }
 
         currentRoom = getSavedRoom() ?: rooms[0]
@@ -113,7 +115,7 @@ class MainActivity : ComponentActivity() {
         }
 
         if (!nfcDataProcessed) {
-            handleTagData(intent) // if the app is closed, intent data (NFC content) will be delivered here
+            handleTagData(this, intent) // if the app is closed, intent data (NFC content) will be delivered here
         }
     }
 
@@ -128,10 +130,10 @@ class MainActivity : ComponentActivity() {
                 }
             }
             .addOnCanceledListener {
-                Toast.makeText(this, "QR-Code Scan abgebrochen", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getText(R.string.qr_scan_canceled), Toast.LENGTH_SHORT).show()
             }
             .addOnFailureListener { e ->
-                Toast.makeText(this, "QR-Code Scan fehlgeschlagen (${e.localizedMessage})", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.qr_scan_failed, e.localizedMessage), Toast.LENGTH_SHORT).show()
             }
     }
 
@@ -141,12 +143,12 @@ class MainActivity : ComponentActivity() {
         var selectedRoomIndex = rooms.indexOf(selectedRoom)
 
         val builder = AlertDialog.Builder(context)
-        builder.setTitle("Raum auswählen")
+        builder.setTitle(getString(R.string.room_select))
         builder.setSingleChoiceItems(rooms, selectedRoomIndex) { _, which ->
             selectedRoomIndex = which
         }
 
-        builder.setPositiveButton("OK") { dialog, _ ->
+        builder.setPositiveButton(getString(R.string.ok)) { dialog, _ ->
             if (selectedRoomIndex != -1) {
                 val newRoom = rooms[selectedRoomIndex]
                 sharedPreferences.edit().putString("selected_room", newRoom).apply()
@@ -155,7 +157,7 @@ class MainActivity : ComponentActivity() {
             dialog.dismiss()
         }
 
-        builder.setNegativeButton("Abbrechen") { dialog, _ ->
+        builder.setNegativeButton(getString(R.string.cancel)) { dialog, _ ->
             dialog.dismiss()
         }
 
@@ -169,7 +171,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        handleTagData(intent)
+        handleTagData(this, intent)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -177,16 +179,18 @@ class MainActivity : ComponentActivity() {
         outState.putBoolean("nfcDataProcessed", nfcDataProcessed)
     }
 
-    private fun handleTagData(intent: Intent) {
+    private fun handleTagData(context: Context, intent: Intent) {
         if (NfcAdapter.ACTION_NDEF_DISCOVERED == intent.action) {
             intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES)?.also { rawMessages ->
                 val messages: List<NdefMessage> = rawMessages.map { it as NdefMessage }
-                // Process the messages array.
+
                 val identifier = messages[0].records.firstOrNull()?.payload?.let { payload ->
                     String(payload, Charsets.UTF_8).substring(3)
                 }
                 identifier?.let { sendRequest(it) }
                 nfcDataProcessed = true
+
+                MediaPlayer.create(context, Settings.System.DEFAULT_NOTIFICATION_URI).start()
             }
         }
     }
