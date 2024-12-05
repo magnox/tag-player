@@ -56,6 +56,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import okio.IOException
+import org.json.JSONObject
 
 
 /***
@@ -63,6 +64,7 @@ import okio.IOException
  * with the corresponding track id.
  * Also the 5 basic control commands are available via buttons.
  * The room for playback can be selected from a predefined array.
+ * The host url, port and the current room can be changed via a config tag.
  * In case the local server is not available, the request is deeplinked to the spotify app.
  *
  * Tracks:
@@ -79,6 +81,7 @@ import okio.IOException
 class MainActivity : ComponentActivity() {
     private val rooms = arrayOf("Kinderzimmer", "Wohnzimmer", "Bad")
     private var currentRoom = rooms[0]
+    private var host = "192.168.178.77:5005" //default, can be overridden by config tag
     private val volumeStep = 3
 
     private var nfcAdapter: NfcAdapter? = null
@@ -97,6 +100,7 @@ class MainActivity : ComponentActivity() {
         }
 
         currentRoom = getSavedRoom() ?: rooms[0]
+        host = getSavedHost() ?: host
 
         setContent {
             TagPlayerTheme {
@@ -169,6 +173,11 @@ class MainActivity : ComponentActivity() {
         return sharedPreferences.getString("selected_room", currentRoom)
     }
 
+    private fun getSavedHost() : String? {
+        val sharedPreferences = getSharedPreferences("my_prefs", Context.MODE_PRIVATE)
+        return sharedPreferences.getString("host_url", host)
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handleTagData(this, intent)
@@ -187,11 +196,41 @@ class MainActivity : ComponentActivity() {
                 val identifier = messages[0].records.firstOrNull()?.payload?.let { payload ->
                     String(payload, Charsets.UTF_8).substring(3)
                 }
-                identifier?.let { sendRequest(it) }
+                identifier?.let {
+                    if (it.contains("\"config\":")) {
+                        updateConfig(it)
+                    } else {
+                        sendRequest(it)
+                    }
+                }
                 nfcDataProcessed = true
 
                 MediaPlayer.create(context, Settings.System.DEFAULT_NOTIFICATION_URI).start()
             }
+        }
+    }
+
+    /*
+        sample JSON:
+        {"config":{"host":"192.168.178.77:5005","currentRoom":"Kinderzimmer"}}
+        * */
+    private fun updateConfig(jsonString: String) {
+        try {
+            Log.d("CONFIG", "Received new config: string=$jsonString")
+            val jsonObject = JSONObject(jsonString)
+            val config = jsonObject.getJSONObject("config")
+
+            val host = config.getString("host")
+            val room = config.getString("currentRoom")
+
+            Log.d("CONFIG", "Received new config: host: $host, currentRoom: $room")
+
+            val sharedPrefs = getSharedPreferences("my_prefs", Context.MODE_PRIVATE)
+            sharedPrefs.edit().putString("host_url", host).apply()
+            sharedPrefs.edit().putString("selected_room", room).apply()
+            currentRoom = room
+        } catch (e: Exception) {
+            Log.e("CONFIG", "Failed to parse JSON: ${e.message}")
         }
     }
 
@@ -214,60 +253,61 @@ class MainActivity : ComponentActivity() {
 
         performHttpRequest(currentRoom, identifier, this)
     }
-}
 
-fun performHttpRequest(currentRoom: String, uri: String, context: Context) {
-    val client = OkHttpClient()
+    private fun performHttpRequest(currentRoom: String, uri: String, context: Context) {
+        val client = OkHttpClient()
 
-    val host = "192.168.178.77"
-    val port = "5005"
-    val url = "http://$host:$port/$currentRoom/$uri"
+        val urlHost = host.split(":")[0]
+        val urlPort = host.split(":")[1]
+        val url = "http://$urlHost:$urlPort/$currentRoom/$uri"
 
-    val request = Request.Builder()
-        .url(url)
-        .build()
+        val request = Request.Builder()
+            .url(url)
+            .build()
 
-    Log.d("URL", "Calling URL: $url")
+        Log.d("URL", "Calling URL: $url")
 
-    client.newCall(request).enqueue(object : okhttp3.Callback {
-        override fun onFailure(call: okhttp3.Call, e: IOException) {
-            Log.d("URL", "Request failed with exception: ${e.localizedMessage}")
-            e.printStackTrace()
+        client.newCall(request).enqueue(object : okhttp3.Callback {
+            override fun onFailure(call: okhttp3.Call, e: IOException) {
+                Log.d("URL", "Request failed with exception: ${e.localizedMessage}")
+                e.printStackTrace()
 
-            if (isSpotifyRequest(uri)) {
-                val pathSegments = call.request().url.encodedPathSegments
-                openInSpotifyApp(pathSegments[pathSegments.size - 1], context)
-            }
-        }
-
-        private fun isSpotifyRequest(uri: String): Boolean {
-            return uri.contains("spotify")
-        }
-
-        private fun openInSpotifyApp(encodedPathSegment: String, context: Context) {
-            Log.d("URL", "path segment: $encodedPathSegment")
-
-            val identifiers = encodedPathSegment.split(':')
-            val spotifyContent = "https://open.spotify.com/intl-de/${identifiers[identifiers.size - 2]}/${identifiers[identifiers.size - 1]}"
-
-            val branchLink = "https://spotify.link/content_linking?~campaign=${context.packageName}&\$deeplink_path=$spotifyContent&\$fallback_url=$spotifyContent"
-            val intent = Intent(Intent.ACTION_VIEW)
-            Log.d("URL", "starting deeplink activity: $branchLink")
-            intent.setData(Uri.parse(branchLink))
-            startActivity(context, intent, null)
-        }
-
-        override fun onResponse(call: okhttp3.Call, response: Response) {
-            if (response.isSuccessful) {
-                val responseData = response.body?.string()
-                if (responseData != null) {
-                    Log.d("URL", responseData)
+                // fallback: open in Spotify app
+                if (isSpotifyRequest(uri)) {
+                    val pathSegments = call.request().url.encodedPathSegments
+                    openInSpotifyApp(pathSegments[pathSegments.size - 1], context)
                 }
-            } else {
-                Log.d("URL", "Request failed with status code: ${response.code}")
             }
-        }
-    })
+
+            private fun isSpotifyRequest(uri: String): Boolean {
+                return uri.contains("spotify")
+            }
+
+            private fun openInSpotifyApp(encodedPathSegment: String, context: Context) {
+                Log.d("URL", "path segment: $encodedPathSegment")
+
+                val identifiers = encodedPathSegment.split(':')
+                val spotifyContent = "https://open.spotify.com/intl-de/${identifiers[identifiers.size - 2]}/${identifiers[identifiers.size - 1]}"
+
+                val branchLink = "https://spotify.link/content_linking?~campaign=${context.packageName}&\$deeplink_path=$spotifyContent&\$fallback_url=$spotifyContent"
+                val intent = Intent(Intent.ACTION_VIEW)
+                Log.d("URL", "starting deeplink activity: $branchLink")
+                intent.setData(Uri.parse(branchLink))
+                startActivity(context, intent, null)
+            }
+
+            override fun onResponse(call: okhttp3.Call, response: Response) {
+                if (response.isSuccessful) {
+                    val responseData = response.body?.string()
+                    if (responseData != null) {
+                        Log.d("URL", responseData)
+                    }
+                } else {
+                    Log.d("URL", "Request failed with status code: ${response.code}")
+                }
+            }
+        })
+    }
 }
 
 enum class Command {
