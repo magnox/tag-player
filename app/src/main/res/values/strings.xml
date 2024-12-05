@@ -5,5 +5,6 @@
     <string name="room_select">Raum auswählen</string>
     <string name="cancel">Abbrechen</string>
     <string name="nfc_not_available">NFC ist auf diesem Gerät nicht verfügbar.</string>
+    <string name="new_config">Neue Konfiguration: (%1$s)</string>
     <string name="ok">OK</string>
 </resources>

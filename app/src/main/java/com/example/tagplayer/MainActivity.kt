@@ -229,6 +229,7 @@ class MainActivity : ComponentActivity() {
             sharedPrefs.edit().putString("host_url", host).apply()
             sharedPrefs.edit().putString("selected_room", room).apply()
             currentRoom = room
+            Toast.makeText(this, getString(R.string.new_config, "$host | $room"), Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             Log.e("CONFIG", "Failed to parse JSON: ${e.message}")
         }
